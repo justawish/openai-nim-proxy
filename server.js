@@ -117,10 +117,14 @@ app.post('/v1/chat/completions', async (req, res) => {
       model: nimModel,
       messages: processedMessages,
       temperature: temperature || 0.65,  // Lower for coherent responses
-      top_p: 0.85,  // More focused word choices
-      max_tokens: max_tokens || 400,  // Moderate length
-      frequency_penalty: 0.15,  // Light repetition reduction
-      presence_penalty: 0.1,  // Gentle topic diversity
+      top_p: 1,  // More focused word choices
+      min_p: 0,  // OpenRouter uses min_p
+      top_k: -1,  // OpenRouter default (disabled)
+      max_tokens: max_tokens || null,  // OpenRouter uses null as default
+      frequency_penalty: 0,  // OpenRouter default
+      presence_penalty: 0,  // OpenRouter default
+      repetition_penalty: 1,  // OpenRouter default (different from frequency_penalty)
+      skip_special_tokens: true,  // OpenRouter default
       extra_body: ENABLE_THINKING_MODE ? { chat_template_kwargs: { thinking: true } } : undefined,
       stream: stream || false
     };
