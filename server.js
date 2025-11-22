@@ -94,33 +94,34 @@ app.post('/v1/chat/completions', async (req, res) => {
     // Pre-process messages for better conversational tone (OpenRouter-style)
     const processedMessages = [...messages];
     
-    // Add or enhance system message for grounded roleplay
-    const systemMsgIndex = processedMessages.findIndex(m => m.role === 'system');
-    const roleplayPrompt = '\n\nWrite concrete, literal responses in character. Use simple, direct language. Describe physical actions and dialogue clearly. Avoid metaphors, abstract language, poetic descriptions, or stream-of-consciousness rambling. Be straightforward and grounded. Use italics sparingly for emphasis or internal thoughts only. Use em-dashes moderately.';
+    // Add or enhance system message (minimal - let character cards work)
+    const processedMessages = [...messages];
     
-    if (systemMsgIndex >= 0) {
-      // Enhance existing system message
-      processedMessages[systemMsgIndex] = {
-        ...processedMessages[systemMsgIndex],
-        content: processedMessages[systemMsgIndex].content + roleplayPrompt
-      };
-    } else {
-      // Add default system message if none exists (though Janitor usually provides character cards)
+    // Only add gentle guidance if NO system message exists
+    const systemMsgIndex = processedMessages.findIndex(m => m.role === 'system');
+    
+    if (systemMsgIndex < 0) {
+      // Only add if completely missing - Janitor usually provides character card
       processedMessages.unshift({
         role: 'system',
-        content: 'You are roleplaying as a character. Stay in character and write clearly.' + roleplayPrompt
+        content: 'Stay in character and respond naturally.'
       });
     }
+    // If system message exists, don't modify it - respect the character card
     
-    // Transform OpenAI request to NIM format with conservative roleplay parameters
+    // Transform OpenAI request to NIM format with OpenRouter chutes defaults
     const nimRequest = {
       model: nimModel,
       messages: processedMessages,
-      temperature: temperature || 0.55,  // Lower for more coherent, grounded responses
-      top_p: 0.75,  // More conservative word choices
-      max_tokens: max_tokens || 350,  // Shorter to prevent drift
-      frequency_penalty: 0.05,  // Minimal - too high causes weird word choices
-      presence_penalty: 0.05,  // Minimal - too high causes tangents
+      temperature: temperature !== undefined ? temperature : 0.7,  // OpenRouter default
+      top_p: 1,  // OpenRouter default (not 0.9!)
+      min_p: 0,  // OpenRouter uses min_p
+      top_k: -1,  // OpenRouter default (disabled)
+      max_tokens: max_tokens || null,  // OpenRouter uses null as default
+      frequency_penalty: 0,  // OpenRouter default
+      presence_penalty: 0,  // OpenRouter default
+      repetition_penalty: 1,  // OpenRouter default (different from frequency_penalty)
+      skip_special_tokens: true,  // OpenRouter default
       extra_body: ENABLE_THINKING_MODE ? { chat_template_kwargs: { thinking: true } } : undefined,
       stream: stream || false
     };
@@ -214,35 +215,20 @@ app.post('/v1/chat/completions', async (req, res) => {
         choices: response.data.choices.map(choice => {
           let fullContent = choice.message?.content || '';
           
-          // Post-process for better roleplay readability and coherence
+          // Post-process - light cleanup only (OpenRouter-style)
           fullContent = fullContent
             .replace(/^(Certainly|Sure|Of course)[,!]\s*/i, '')
             .replace(/^(I apologize|I'm sorry)[,\s]*/gi, '')
             .replace(/\bI understand that you(?:'re|\s+are)\s+asking\b/gi, '')
             .replace(/\bAs an AI\b/gi, '')
             .replace(/\bI cannot\b/gi, '')
-            .replace(/\*clears throat\*/gi, '')
-            // Fix excessive italics and formatting
+            // Fix excessive formatting only
             .replace(/\*{3,}/g, '*')
             .replace(/_{3,}/g, '_')
             .replace(/—{2,}/g, '—')
             .replace(/\.{4,}/g, '...')
             .replace(/\*\s*\*/g, '')
             .replace(/_\s*_/g, '')
-            .replace(/(\*[^*]+\*)\s*\1/g, '$1')
-            .replace(/\s*—\s*/g, '—')
-            .replace(/([.,!?])—/g, '$1 —')
-            .replace(/—([a-zA-Z])/g, '— $1')
-            // Detect and truncate if response becomes nonsensical
-            // Look for signs of drift: excessive dashes, abstract words in clusters
-            .replace(/(\bthread[s]?\b.*\bthread[s]?\b.*\bthread[s]?\b)/gi, (match) => {
-              // If "thread" appears 3+ times in close proximity, likely drifting
-              return '';
-            })
-            .replace(/(\bwave[s]?\b.*\bwave[s]?\b.*\bwave[s]?\b)/gi, '')
-            .replace(/(\bvibration[s]?\b.*\bretronat[a-z]*\b.*\bether[a-z]*\b)/gi, '')
-            // Remove sentences with too many abstract/poetic words
-            .replace(/[^.!?]*\b(ethereal|sorcery|resonating|vibrations)\b[^.!?]*[.!?]/gi, '')
             .trim();
           
           if (SHOW_REASONING && choice.message?.reasoning_content) {
