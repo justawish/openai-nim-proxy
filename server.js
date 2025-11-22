@@ -106,21 +106,24 @@ app.post('/v1/chat/completions', async (req, res) => {
       });
     }
     
-    // OpenRouter chutes defaults
+    // OpenRouter chutes defaults adapted for NVIDIA NIM
     const nimRequest = {
       model: nimModel,
       messages: processedMessages,
       temperature: temperature !== undefined ? temperature : 0.7,
       top_p: 1,
-      min_p: 0,
-      top_k: -1,
-      max_tokens: max_tokens || null,
+      max_tokens: max_tokens || 1024,
       frequency_penalty: 0,
       presence_penalty: 0,
-      repetition_penalty: 1,
-      skip_special_tokens: true,
       stream: stream || false
     };
+    
+    // Remove null/undefined values that NVIDIA might reject
+    Object.keys(nimRequest).forEach(key => {
+      if (nimRequest[key] === null || nimRequest[key] === undefined) {
+        delete nimRequest[key];
+      }
+    });
     
     // Make request to NVIDIA NIM API
     const response = await axios.post(`${NIM_API_BASE}/chat/completions`, nimRequest, {
