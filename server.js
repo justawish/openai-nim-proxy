@@ -104,13 +104,13 @@ app.post('/v1/chat/completions', async (req, res) => {
       // Enhance existing system message with roleplay guidance
       processedMessages[systemMsgIndex] = {
         ...processedMessages[systemMsgIndex],
-        content: processedMessages[systemMsgIndex].content + '\n\nWrite detailed, immersive responses with internal thoughts, emotions, and vivid descriptions. Show character feelings through actions and reactions. Use varied sentence structure and natural dialogue. Be descriptive and engaging.'
+        content: processedMessages[systemMsgIndex].content + '\n\nWrite detailed, immersive responses with internal thoughts, emotions, and vivid descriptions. Show character feelings through actions and reactions. Use varied sentence structure and natural dialogue. Be descriptive and engaging. Show dont tell'
       };
     } else {
       // Add detailed system message if none exists
       processedMessages.unshift({
         role: 'system',
-        content: 'Stay in character and respond naturally. Write detailed, immersive responses with internal thoughts, emotions, and vivid descriptions. Show character feelings through actions and reactions. Use varied sentence structure and natural dialogue. Be descriptive and engaging.'
+        content: 'Stay in character and respond naturally. Write detailed, immersive responses with internal thoughts, emotions, and vivid descriptions. Show character feelings through actions and reactions. Use varied sentence structure and natural dialogue. Be descriptive and engaging while focusing on physical description, sensation, and actions to remain present.'
       });
     }
     
