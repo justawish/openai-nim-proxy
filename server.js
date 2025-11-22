@@ -94,9 +94,9 @@ app.post('/v1/chat/completions', async (req, res) => {
     // Pre-process messages for better conversational tone (OpenRouter-style)
     const processedMessages = [...messages];
     
-    // Add or enhance system message for balanced roleplay
+    // Add or enhance system message for grounded roleplay
     const systemMsgIndex = processedMessages.findIndex(m => m.role === 'system');
-    const roleplayPrompt = '\n\nWrite clear, coherent responses in character. Use natural dialogue and actions. Be descriptive but concise. Stay grounded and avoid rambling or stream-of-consciousness writing.';
+    const roleplayPrompt = '\n\nWrite concrete, literal responses in character. Use simple, direct language. Describe physical actions and dialogue clearly. Avoid metaphors, abstract language, poetic descriptions, or stream-of-consciousness rambling. Be straightforward and grounded. Use italics sparingly for emphasis or internal thoughts only. Use em-dashes moderately.';
     
     if (systemMsgIndex >= 0) {
       // Enhance existing system message
@@ -112,15 +112,15 @@ app.post('/v1/chat/completions', async (req, res) => {
       });
     }
     
-    // Transform OpenAI request to NIM format with balanced roleplay parameters
+    // Transform OpenAI request to NIM format with conservative roleplay parameters
     const nimRequest = {
       model: nimModel,
       messages: processedMessages,
-      temperature: temperature || 0.65,  // Lower for coherent responses
-      top_p: 0.85,  // More focused word choices
-      max_tokens: max_tokens || 400,  // Moderate length
-      frequency_penalty: 0.15,  // Light repetition reduction
-      presence_penalty: 0.1,  // Gentle topic diversity
+      temperature: temperature || 0.55,  // Lower for more coherent, grounded responses
+      top_p: 0.75,  // More conservative word choices
+      max_tokens: max_tokens || 350,  // Shorter to prevent drift
+      frequency_penalty: 0.05,  // Minimal - too high causes weird word choices
+      presence_penalty: 0.05,  // Minimal - too high causes tangents
       extra_body: ENABLE_THINKING_MODE ? { chat_template_kwargs: { thinking: true } } : undefined,
       stream: stream || false
     };
@@ -214,14 +214,35 @@ app.post('/v1/chat/completions', async (req, res) => {
         choices: response.data.choices.map(choice => {
           let fullContent = choice.message?.content || '';
           
-          // Post-process for better roleplay immersion
+          // Post-process for better roleplay readability and coherence
           fullContent = fullContent
             .replace(/^(Certainly|Sure|Of course)[,!]\s*/i, '')
             .replace(/^(I apologize|I'm sorry)[,\s]*/gi, '')
             .replace(/\bI understand that you(?:'re|\s+are)\s+asking\b/gi, '')
             .replace(/\bAs an AI\b/gi, '')
             .replace(/\bI cannot\b/gi, '')
-            .replace(/\*clears throat\*/gi, '')  // Remove awkward RP crutches
+            .replace(/\*clears throat\*/gi, '')
+            // Fix excessive italics and formatting
+            .replace(/\*{3,}/g, '*')
+            .replace(/_{3,}/g, '_')
+            .replace(/—{2,}/g, '—')
+            .replace(/\.{4,}/g, '...')
+            .replace(/\*\s*\*/g, '')
+            .replace(/_\s*_/g, '')
+            .replace(/(\*[^*]+\*)\s*\1/g, '$1')
+            .replace(/\s*—\s*/g, '—')
+            .replace(/([.,!?])—/g, '$1 —')
+            .replace(/—([a-zA-Z])/g, '— $1')
+            // Detect and truncate if response becomes nonsensical
+            // Look for signs of drift: excessive dashes, abstract words in clusters
+            .replace(/(\bthread[s]?\b.*\bthread[s]?\b.*\bthread[s]?\b)/gi, (match) => {
+              // If "thread" appears 3+ times in close proximity, likely drifting
+              return '';
+            })
+            .replace(/(\bwave[s]?\b.*\bwave[s]?\b.*\bwave[s]?\b)/gi, '')
+            .replace(/(\bvibration[s]?\b.*\bretronat[a-z]*\b.*\bether[a-z]*\b)/gi, '')
+            // Remove sentences with too many abstract/poetic words
+            .replace(/[^.!?]*\b(ethereal|sorcery|resonating|vibrations)\b[^.!?]*[.!?]/gi, '')
             .trim();
           
           if (SHOW_REASONING && choice.message?.reasoning_content) {
