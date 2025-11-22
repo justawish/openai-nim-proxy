@@ -94,34 +94,33 @@ app.post('/v1/chat/completions', async (req, res) => {
     // Pre-process messages for better conversational tone (OpenRouter-style)
     const processedMessages = [...messages];
     
-    // Add or enhance system message (minimal - let character cards work)
-    const processedMessages = [...messages];
-    
-    // Only add gentle guidance if NO system message exists
+    // Add or enhance system message for balanced roleplay
     const systemMsgIndex = processedMessages.findIndex(m => m.role === 'system');
+    const roleplayPrompt = '\n\nWrite clear, coherent responses in character. Use natural dialogue and actions. Be descriptive but concise. Stay grounded and avoid rambling or stream-of-consciousness writing.';
     
-    if (systemMsgIndex < 0) {
-      // Only add if completely missing - Janitor usually provides character card
+    if (systemMsgIndex >= 0) {
+      // Enhance existing system message
+      processedMessages[systemMsgIndex] = {
+        ...processedMessages[systemMsgIndex],
+        content: processedMessages[systemMsgIndex].content + roleplayPrompt
+      };
+    } else {
+      // Add default system message if none exists (though Janitor usually provides character cards)
       processedMessages.unshift({
         role: 'system',
-        content: 'Stay in character and respond naturally.'
+        content: 'You are roleplaying as a character. Stay in character and write clearly.' + roleplayPrompt
       });
     }
-    // If system message exists, don't modify it - respect the character card
     
-    // Transform OpenAI request to NIM format with OpenRouter chutes defaults
+    // Transform OpenAI request to NIM format with balanced roleplay parameters
     const nimRequest = {
       model: nimModel,
       messages: processedMessages,
-      temperature: temperature !== undefined ? temperature : 0.7,  // OpenRouter default
-      top_p: 1,  // OpenRouter default (not 0.9!)
-      min_p: 0,  // OpenRouter uses min_p
-      top_k: -1,  // OpenRouter default (disabled)
-      max_tokens: max_tokens || null,  // OpenRouter uses null as default
-      frequency_penalty: 0,  // OpenRouter default
-      presence_penalty: 0,  // OpenRouter default
-      repetition_penalty: 1,  // OpenRouter default (different from frequency_penalty)
-      skip_special_tokens: true,  // OpenRouter default
+      temperature: temperature || 0.65,  // Lower for coherent responses
+      top_p: 0.85,  // More focused word choices
+      max_tokens: max_tokens || 400,  // Moderate length
+      frequency_penalty: 0.15,  // Light repetition reduction
+      presence_penalty: 0.1,  // Gentle topic diversity
       extra_body: ENABLE_THINKING_MODE ? { chat_template_kwargs: { thinking: true } } : undefined,
       stream: stream || false
     };
@@ -215,20 +214,14 @@ app.post('/v1/chat/completions', async (req, res) => {
         choices: response.data.choices.map(choice => {
           let fullContent = choice.message?.content || '';
           
-          // Post-process - light cleanup only (OpenRouter-style)
+          // Post-process for better roleplay immersion
           fullContent = fullContent
             .replace(/^(Certainly|Sure|Of course)[,!]\s*/i, '')
             .replace(/^(I apologize|I'm sorry)[,\s]*/gi, '')
             .replace(/\bI understand that you(?:'re|\s+are)\s+asking\b/gi, '')
             .replace(/\bAs an AI\b/gi, '')
             .replace(/\bI cannot\b/gi, '')
-            // Fix excessive formatting only
-            .replace(/\*{3,}/g, '*')
-            .replace(/_{3,}/g, '_')
-            .replace(/—{2,}/g, '—')
-            .replace(/\.{4,}/g, '...')
-            .replace(/\*\s*\*/g, '')
-            .replace(/_\s*_/g, '')
+            .replace(/\*clears throat\*/gi, '')  // Remove awkward RP crutches
             .trim();
           
           if (SHOW_REASONING && choice.message?.reasoning_content) {
