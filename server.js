@@ -96,13 +96,21 @@ app.post('/v1/chat/completions', async (req, res) => {
     }
     
     // Minimal message processing
+    // Enhanced message processing for detailed roleplay
     const processedMessages = [...messages];
     const systemMsgIndex = processedMessages.findIndex(m => m.role === 'system');
     
-    if (systemMsgIndex < 0) {
+    if (systemMsgIndex >= 0) {
+      // Enhance existing system message with roleplay guidance
+      processedMessages[systemMsgIndex] = {
+        ...processedMessages[systemMsgIndex],
+        content: processedMessages[systemMsgIndex].content + '\n\nWrite detailed, immersive responses with internal thoughts, emotions, and vivid descriptions. Show character feelings through actions and reactions. Use varied sentence structure and natural dialogue. Be descriptive and engaging.'
+      };
+    } else {
+      // Add detailed system message if none exists
       processedMessages.unshift({
         role: 'system',
-        content: 'Stay in character and respond naturally.'
+        content: 'Stay in character and respond naturally. Write detailed, immersive responses with internal thoughts, emotions, and vivid descriptions. Show character feelings through actions and reactions. Use varied sentence structure and natural dialogue. Be descriptive and engaging.'
       });
     }
     
@@ -112,7 +120,7 @@ app.post('/v1/chat/completions', async (req, res) => {
       messages: processedMessages,
       temperature: temperature !== undefined ? temperature : 0.7,
       top_p: 1,
-      max_tokens: max_tokens || 1024,
+      max_tokens: max_tokens || 2048,  // Increased for longer, more detailed responses
       frequency_penalty: 0,
       presence_penalty: 0,
       stream: stream || false
