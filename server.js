@@ -91,12 +91,36 @@ app.post('/v1/chat/completions', async (req, res) => {
       }
     }
     
-    // Transform OpenAI request to NIM format
+    // Pre-process messages for better conversational tone (OpenRouter-style)
+    const processedMessages = [...messages];
+    
+    // Add or enhance system message for roleplay/character interaction
+    const systemMsgIndex = processedMessages.findIndex(m => m.role === 'system');
+    const roleplayPrompt = '\n\nWrite immersive, character-driven responses. Stay in character, show emotions through actions and dialogue, use vivid descriptions. Be natural and engaging. Avoid repetitive phrases, meta-commentary, or breaking character. Match the tone and style of the conversation.';
+    
+    if (systemMsgIndex >= 0) {
+      // Enhance existing system message
+      processedMessages[systemMsgIndex] = {
+        ...processedMessages[systemMsgIndex],
+        content: processedMessages[systemMsgIndex].content + roleplayPrompt
+      };
+    } else {
+      // Add default system message if none exists (though Janitor usually provides character cards)
+      processedMessages.unshift({
+        role: 'system',
+        content: 'You are roleplaying as a character. Stay immersed in the scene and character.' + roleplayPrompt
+      });
+    }
+    
+    // Transform OpenAI request to NIM format with roleplay-optimized parameters
     const nimRequest = {
       model: nimModel,
-      messages: messages,
-      temperature: temperature || 0.6,
-      max_tokens: max_tokens || 9024,
+      messages: processedMessages,
+      temperature: temperature || 0.8,  // Higher for more creative roleplay
+      top_p: 0.95,  // More diversity in word choice
+      max_tokens: max_tokens || 500,  // Shorter, punchier responses
+      frequency_penalty: 0.3,  // Reduce repetitive phrases/actions
+      presence_penalty: 0.2,  // Encourage topic diversity
       extra_body: ENABLE_THINKING_MODE ? { chat_template_kwargs: { thinking: true } } : undefined,
       stream: stream || false
     };
@@ -189,6 +213,16 @@ app.post('/v1/chat/completions', async (req, res) => {
         model: model,
         choices: response.data.choices.map(choice => {
           let fullContent = choice.message?.content || '';
+          
+          // Post-process for better roleplay immersion
+          fullContent = fullContent
+            .replace(/^(Certainly|Sure|Of course)[,!]\s*/i, '')
+            .replace(/^(I apologize|I'm sorry)[,\s]*/gi, '')
+            .replace(/\bI understand that you(?:'re|\s+are)\s+asking\b/gi, '')
+            .replace(/\bAs an AI\b/gi, '')
+            .replace(/\bI cannot\b/gi, '')
+            .replace(/\*clears throat\*/gi, '')  // Remove awkward RP crutches
+            .trim();
           
           if (SHOW_REASONING && choice.message?.reasoning_content) {
             fullContent = '<think>\n' + choice.message.reasoning_content + '\n</think>\n\n' + fullContent;
