@@ -94,9 +94,9 @@ app.post('/v1/chat/completions', async (req, res) => {
     // Pre-process messages for better conversational tone (OpenRouter-style)
     const processedMessages = [...messages];
     
-    // Add or enhance system message for roleplay/character interaction
+    // Add or enhance system message for balanced roleplay
     const systemMsgIndex = processedMessages.findIndex(m => m.role === 'system');
-    const roleplayPrompt = '\n\nWrite immersive, character-driven responses. Stay in character, show emotions through actions and dialogue, use vivid descriptions. Be natural and engaging. Avoid repetitive phrases, meta-commentary, or breaking character. Match the tone and style of the conversation.';
+    const roleplayPrompt = '\n\nWrite clear, coherent responses in character. Use natural dialogue and actions. Be descriptive but concise. Stay grounded and avoid rambling or stream-of-consciousness writing.';
     
     if (systemMsgIndex >= 0) {
       // Enhance existing system message
@@ -108,19 +108,19 @@ app.post('/v1/chat/completions', async (req, res) => {
       // Add default system message if none exists (though Janitor usually provides character cards)
       processedMessages.unshift({
         role: 'system',
-        content: 'You are roleplaying as a character. Stay immersed in the scene and character.' + roleplayPrompt
+        content: 'You are roleplaying as a character. Stay in character and write clearly.' + roleplayPrompt
       });
     }
     
-    // Transform OpenAI request to NIM format with roleplay-optimized parameters
+    // Transform OpenAI request to NIM format with balanced roleplay parameters
     const nimRequest = {
       model: nimModel,
       messages: processedMessages,
-      temperature: temperature || 0.8,  // Higher for more creative roleplay
-      top_p: 0.95,  // More diversity in word choice
-      max_tokens: max_tokens || 500,  // Shorter, punchier responses
-      frequency_penalty: 0.3,  // Reduce repetitive phrases/actions
-      presence_penalty: 0.2,  // Encourage topic diversity
+      temperature: temperature || 0.65,  // Lower for coherent responses
+      top_p: 0.85,  // More focused word choices
+      max_tokens: max_tokens || 400,  // Moderate length
+      frequency_penalty: 0.15,  // Light repetition reduction
+      presence_penalty: 0.1,  // Gentle topic diversity
       extra_body: ENABLE_THINKING_MODE ? { chat_template_kwargs: { thinking: true } } : undefined,
       stream: stream || false
     };
