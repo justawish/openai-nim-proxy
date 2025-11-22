@@ -118,7 +118,6 @@ app.post('/v1/chat/completions', async (req, res) => {
       messages: processedMessages,
       temperature: temperature || 0.7,  // Lower for more coherent, grounded responses
       top_p: 1,  // More conservative word choices
-      min_p: 0, 
       top_k: -1, 
       max_tokens: max_tokens || null,  // Shorter to prevent drift
       frequency_penalty: 0,  // Minimal - too high causes weird word choices
