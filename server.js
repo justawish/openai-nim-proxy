@@ -108,7 +108,7 @@ app.post('/v1/chat/completions', async (req, res) => {
       // Add default system message if none exists (though Janitor usually provides character cards)
       processedMessages.unshift({
         role: 'system',
-        content: 'You are roleplaying as a character. Stay in character and write clearly.' + roleplayPrompt
+        content: 'Stay in character and respond naturally.'
       });
     }
     
@@ -118,9 +118,12 @@ app.post('/v1/chat/completions', async (req, res) => {
       messages: processedMessages,
       temperature: temperature || 0.7,  // Lower for more coherent, grounded responses
       top_p: 1,  // More conservative word choices
+      min_p: 0, 
+      top_k: -1, 
       max_tokens: max_tokens || null,  // Shorter to prevent drift
       frequency_penalty: 0,  // Minimal - too high causes weird word choices
       presence_penalty: 0,  // Minimal - too high causes tangents
+      repetition_penalty: 1,
       extra_body: ENABLE_THINKING_MODE ? { chat_template_kwargs: { thinking: true } } : undefined,
       stream: stream || false
     };
