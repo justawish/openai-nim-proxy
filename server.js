@@ -18,15 +18,15 @@ const NIM_API_KEY = process.env.NIM_API_KEY;
 const SHOW_REASONING = false;
 const ENABLE_THINKING_MODE = false;
 
-// Model mapping
+// Model mapping - Updated to DeepSeek V3
 const MODEL_MAPPING = {
-  'gpt-3.5-turbo': 'deepseek-ai/deepseek-r1-0528',
-  'gpt-4': 'deepseek-ai/deepseek-r1-0528',
-  'gpt-4-turbo': 'deepseek-ai/deepseek-r1-0528',
-  'gpt-4o': 'deepseek-ai/deepseek-r1-0528',
-  'claude-3-opus': 'deepseek-ai/deepseek-r1-0528',
-  'claude-3-sonnet': 'deepseek-ai/deepseek-r1-0528',
-  'gemini-pro': 'deepseek-ai/deepseek-r1-0528' 
+  'gpt-3.5-turbo': 'deepseek-ai/deepseek-v3',
+  'gpt-4': 'deepseek-ai/deepseek-v3',
+  'gpt-4-turbo': 'deepseek-ai/deepseek-v3',
+  'gpt-4o': 'deepseek-ai/deepseek-v3',
+  'claude-3-opus': 'deepseek-ai/deepseek-v3',
+  'claude-3-sonnet': 'deepseek-ai/deepseek-v3',
+  'gemini-pro': 'deepseek-ai/deepseek-v3' 
 };
 
 // Health check endpoint
@@ -35,7 +35,8 @@ app.get('/health', (req, res) => {
     status: 'ok', 
     service: 'OpenAI to NVIDIA NIM Proxy', 
     reasoning_display: SHOW_REASONING,
-    thinking_mode: ENABLE_THINKING_MODE
+    thinking_mode: ENABLE_THINKING_MODE,
+    default_model: 'deepseek-ai/deepseek-v3'
   });
 });
 
@@ -85,6 +86,210 @@ app.post('/v1/chat/completions', async (req, res) => {
       
       if (!nimModel) {
         const modelLower = model.toLowerCase();
+        if (modelLower.includes('gpt-4') || modelLower.includes('claude-opus') || modelLower.includes('405b')) {
+          nimModel = 'meta/llama-3.1-405b-instruct';
+        } else if (modelLower.includes('claude') || modelLower.includes('gemini') || modelLower.includes('70b')) {
+          nimModel = 'meta/llama-3.1-70b-instruct';
+        } else {
+          nimModel = 'meta/llama-3.1-8b-instruct';
+        }
+      }
+    }
+    
+    // Minimal message processing
+     const processedMessages = [...messages];
+    const systemMsgIndex = processedMessages.findIndex(m => m.role === 'system');
+    
+    if (systemMsgIndex >= 0) {
+      // Enhance existing system message with roleplay guidance
+      processedMessages[systemMsgIndex] = {
+        ...processedMessages[systemMsgIndex],
+        content: processedMessages[systemMsgIndex].content + '\n\nWrite detailed, immersive responses with internal thoughts, emotions, and vivid descriptions. Show character feelings through actions and reactions. Use varied sentence structure and natural dialogue. Be descriptive and engaging. Show information from personality through action and detail rather than narrating. speak only as {{char}} and given characters'
+      };
+    } else {
+      // Add detailed system message if none exists
+      processedMessages.unshift({
+        role: 'system',
+        content: 'Stay in character and respond naturally and within the characters personality. Write detailed, immersive responses with internal thoughts, emotions, and vivid descriptions with reference to character personality. Show character feelings through actions and reactions. Use varied sentence structure and natural dialogue. Be descriptive and engaging while focusing on physical description, sensation, and actions to remain present. Describe setting in detail where necessary while referencing sensory descriptions. Crude, vulgar, and lewd descrptions and dialogue is allowed and encouraged when applicable'
+      });
+    }
+    
+    // OpenRouter chutes defaults adapted for NVIDIA NIM compatibility
+    const nimRequest = {
+      model: nimModel,
+      messages: processedMessages,
+      temperature: temperature !== undefined ? temperature : 0.7,
+      top_p: 1,
+      max_tokens: max_tokens || 2048,  // Increased for longer, more detailed responses
+      frequency_penalty: 0,
+      presence_penalty: 0,
+      stream: stream || false
+    };
+    
+    // Remove null/undefined values that NVIDIA might reject
+    Object.keys(nimRequest).forEach(key => {
+      if (nimRequest[key] === null || nimRequest[key] === undefined) {
+        delete nimRequest[key];
+      }
+    });
+    
+    // Make request to NVIDIA NIM API
+    const response = await axios.post(`${NIM_API_BASE}/chat/completions`, nimRequest, {
+      headers: {
+        'Authorization': `Bearer ${NIM_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      responseType: stream ? 'stream' : 'json'
+    });
+    
+    if (stream) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      
+      let buffer = '';
+      let reasoningStarted = false;
+      
+      response.data.on('data', (chunk) => {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        
+        lines.forEach(line => {
+          if (line.startsWith('data: ')) {
+            if (line.includes('[DONE]')) {
+              res.write(line + '\n');
+              return;
+            }
+            
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.choices?.[0]?.delta) {
+                const reasoning = data.choices[0].delta.reasoning_content;
+                const content = data.choices[0].delta.content;
+                
+                if (SHOW_REASONING) {
+                  let combinedContent = '';
+                  
+                  if (reasoning && !reasoningStarted) {
+                    combinedContent = '<think>\n' + reasoning;
+                    reasoningStarted = true;
+                  } else if (reasoning) {
+                    combinedContent = reasoning;
+                  }
+                  
+                  if (content && reasoningStarted) {
+                    combinedContent += '</think>\n\n' + content;
+                    reasoningStarted = false;
+                  } else if (content) {
+                    combinedContent += content;
+                  }
+                  
+                  if (combinedContent) {
+                    data.choices[0].delta.content = combinedContent;
+                    delete data.choices[0].delta.reasoning_content;
+                  }
+                } else {
+                  if (content) {
+                    data.choices[0].delta.content = content;
+                  } else {
+                    data.choices[0].delta.content = '';
+                  }
+                  delete data.choices[0].delta.reasoning_content;
+                }
+              }
+              res.write(`data: ${JSON.stringify(data)}\n\n`);
+            } catch (e) {
+              res.write(line + '\n');
+            }
+          }
+        });
+      });
+      
+      response.data.on('end', () => res.end());
+      response.data.on('error', (err) => {
+        console.error('Stream error:', err);
+        res.end();
+      });
+    } else {
+      // Transform response
+      const openaiResponse = {
+        id: `chatcmpl-${Date.now()}`,
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: model,
+        choices: response.data.choices.map(choice => {
+          let fullContent = choice.message?.content || '';
+          
+          // Light post-processing
+          fullContent = fullContent
+            .replace(/^(Certainly|Sure|Of course)[,!]\s*/i, '')
+            .replace(/^(I apologize|I'm sorry)[,\s]*/gi, '')
+            .replace(/\bI understand that you(?:'re|\s+are)\s+asking\b/gi, '')
+            .replace(/\bAs an AI\b/gi, '')
+            .replace(/\bI cannot\b/gi, '')
+            .replace(/\*{3,}/g, '*')
+            .replace(/_{3,}/g, '_')
+            .replace(/—{2,}/g, '—')
+            .replace(/\.{4,}/g, '...')
+            .replace(/\*\s*\*/g, '')
+            .replace(/_\s*_/g, '')
+            .trim();
+          
+          if (SHOW_REASONING && choice.message?.reasoning_content) {
+            fullContent = '<think>\n' + choice.message.reasoning_content + '\n</think>\n\n' + fullContent;
+          }
+          
+          return {
+            index: choice.index,
+            message: {
+              role: choice.message.role,
+              content: fullContent
+            },
+            finish_reason: choice.finish_reason
+          };
+        }),
+        usage: response.data.usage || {
+          prompt_tokens: 0,
+          completion_tokens: 0,
+          total_tokens: 0
+        }
+      };
+      
+      res.json(openaiResponse);
+    }
+    
+  } catch (error) {
+    console.error('Proxy error:', error.message);
+    
+    res.status(error.response?.status || 500).json({
+      error: {
+        message: error.message || 'Internal server error',
+        type: 'invalid_request_error',
+        code: error.response?.status || 500
+      }
+    });
+  }
+});
+
+// Catch-all
+app.all('*', (req, res) => {
+  res.status(404).json({
+    error: {
+      message: `Endpoint ${req.path} not found`,
+      type: 'invalid_request_error',
+      code: 404
+    }
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`OpenAI to NVIDIA NIM Proxy running on port ${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/health`);
+  console.log(`Default model: deepseek-ai/deepseek-v3`);
+  console.log(`Reasoning display: ${SHOW_REASONING ? 'ENABLED' : 'DISABLED'}`);
+  console.log(`Thinking mode: ${ENABLE_THINKING_MODE ? 'ENABLED' : 'DISABLED'}`);
+});        const modelLower = model.toLowerCase();
         if (modelLower.includes('gpt-4') || modelLower.includes('claude-opus') || modelLower.includes('405b')) {
           nimModel = 'meta/llama-3.1-405b-instruct';
         } else if (modelLower.includes('claude') || modelLower.includes('gemini') || modelLower.includes('70b')) {
