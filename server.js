@@ -18,15 +18,15 @@ const NIM_API_KEY = process.env.NIM_API_KEY;
 const SHOW_REASONING = false;
 const ENABLE_THINKING_MODE = false;
 
-// Model mapping
+// Model mapping - Updated to DeepSeek V3.2
 const MODEL_MAPPING = {
-  'gpt-3.5-turbo': 'deepseek-ai/deepseek-v3_1',
-  'gpt-4': 'deepseek-ai/deepseek-v3_1',
-  'gpt-4-turbo': 'deepseek-ai/deepseek-v3_1',
-  'gpt-4o': 'deepseek-ai/deepseek-v3_1',
-  'claude-3-opus': 'deepseek-ai/deepseek-v3_1',
-  'claude-3-sonnet': 'deepseek-ai/deepseek-v3_1',
-  'gemini-pro': 'deepseek-ai/deepseek-v3_1' 
+  'gpt-3.5-turbo': 'deepseek-ai/deepseek-v3.2',
+  'gpt-4': 'deepseek-ai/deepseek-v3.2',
+  'gpt-4-turbo': 'deepseek-ai/deepseek-v3.2',
+  'gpt-4o': 'deepseek-ai/deepseek-v3.2',
+  'claude-3-opus': 'deepseek-ai/deepseek-v3.2',
+  'claude-3-sonnet': 'deepseek-ai/deepseek-v3.2',
+  'gemini-pro': 'deepseek-ai/deepseek-v3.2' 
 };
 
 // Health check endpoint
@@ -95,8 +95,8 @@ app.post('/v1/chat/completions', async (req, res) => {
       }
     }
     
-    // Minimal message processing
-     const processedMessages = [...messages];
+    // Enhanced message processing for detailed roleplay
+    const processedMessages = [...messages];
     const systemMsgIndex = processedMessages.findIndex(m => m.role === 'system');
     
     if (systemMsgIndex >= 0) {
@@ -119,7 +119,7 @@ app.post('/v1/chat/completions', async (req, res) => {
       messages: processedMessages,
       temperature: temperature !== undefined ? temperature : 0.7,
       top_p: 1,
-      max_tokens: max_tokens || 2048,  // Increased for longer, more detailed responses
+      max_tokens: max_tokens || 2048,
       frequency_penalty: 0,
       presence_penalty: 0,
       stream: stream || false
