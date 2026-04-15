@@ -20,13 +20,13 @@ const ENABLE_THINKING_MODE = false;
 
 // Model mapping - DeepSeek V3.1
 const MODEL_MAPPING = {
-  'gpt-3.5-turbo': 'deepseek-ai/deepseek-v3_1',
+  'gpt-3.5-turbo': 'deepseek-ai/deepseek-v3_1',  // Note: underscore, not period
   'gpt-4': 'deepseek-ai/deepseek-v3_1',
   'gpt-4-turbo': 'deepseek-ai/deepseek-v3_1',
   'gpt-4o': 'deepseek-ai/deepseek-v3_1',
   'claude-3-opus': 'deepseek-ai/deepseek-v3_1',
   'claude-3-sonnet': 'deepseek-ai/deepseek-v3_1',
-  'gemini-pro': 'deepseek-ai/deepseek-v3_1' 
+  'gemini-pro': 'deepseek-ai/deepseek-v3_1'
 };
 
 // Health check endpoint
