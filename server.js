@@ -16,7 +16,7 @@ const NIM_API_KEY = process.env.NIM_API_KEY;
 
 // Configuration toggles
 const SHOW_REASONING = false;
-const ENABLE_THINKING_MODE = true;
+const ENABLE_THINKING_MODE = false;
 
 // Model mapping - DeepSeek V3.1
 const MODEL_MAPPING = {
@@ -122,7 +122,10 @@ app.post('/v1/chat/completions', async (req, res) => {
       max_tokens: max_tokens || 4096,
       frequency_penalty: 0,
       presence_penalty: 0,
-      stream: stream || false
+      stream: stream || false,
+      extra_body: {
+      chat_template_kwargs: {
+      thinking: ENABLE_THINKING_MODE
     };
     
     // Remove null/undefined values that NVIDIA might reject
