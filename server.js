@@ -122,10 +122,7 @@ app.post('/v1/chat/completions', async (req, res) => {
       max_tokens: max_tokens || 4096,
       frequency_penalty: 0,
       presence_penalty: 0,
-      stream: stream || false,
-      extra_body: {
-      chat_template_kwargs: {
-      thinking: ENABLE_THINKING_MODE
+      stream: stream || false
     };
     
     // Remove null/undefined values that NVIDIA might reject
