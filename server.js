@@ -20,13 +20,13 @@ const ENABLE_THINKING_MODE = false;
 
 // Model mapping - DeepSeek V3.1
 const MODEL_MAPPING = {
-  'gpt-3.5-turbo': 'deepseek-ai/deepseek-v3.1-terminus',
-  'gpt-4': 'deepseek-ai/deepseek-v3.1-terminus',
-  'gpt-4-turbo': 'deepseek-ai/deepseek-v3.1-terminus',
-  'gpt-4o': 'deepseek-ai/deepseek-v3.1-terminus',
-  'claude-3-opus': 'deepseek-ai/deepseek-v3.1-terminus',
-  'claude-3-sonnet': 'deepseek-ai/deepseek-v3.1-terminus',
-  'gemini-pro': 'deepseek-ai/deepseek-v3.1-terminus' 
+  'gpt-3.5-turbo': 'deepseek-ai/deepseek-v3.1',
+  'gpt-4': 'deepseek-ai/deepseek-v3.1',
+  'gpt-4-turbo': 'deepseek-ai/deepseek-v3.1',
+  'gpt-4o': 'deepseek-ai/deepseek-v3.1',
+  'claude-3-opus': 'deepseek-ai/deepseek-v3.1',
+  'claude-3-sonnet': 'deepseek-ai/deepseek-v3.1',
+  'gemini-pro': 'deepseek-ai/deepseek-v3.1' 
 };
 
 // Health check endpoint
