@@ -103,7 +103,7 @@ app.post('/v1/chat/completions', async (req, res) => {
       // Enhance existing system message with roleplay guidance
       processedMessages[systemMsgIndex] = {
         ...processedMessages[systemMsgIndex],
-        content: processedMessages[systemMsgIndex].content + '\n\nWrite detailed, immersive responses of 4-8 paragraphs with internal thoughts, emotions, and vivid descriptions. you must separate paragraphs. write like a novel. Show character feelings through actions and reactions. Use varied sentence structure and natural dialogue. Be descriptive and engaging. Show information from personality through action and detail rather than narrating. Take initiative to advance the scene and add new details in a natural manner. speak only as {{char}} and given characters'
+        content: 'IMPORTANT: Always write in multiple separate paragraphs. Every paragraph must be separated by a blank line (\\n\\n). Never write more than 4 sentences in a row without starting a new paragraph. Never write a single block of text.\n\n' + processedMessages[systemMsgIndex].content + '\n\nWrite detailed, immersive responses of 4-8 paragraphs with internal thoughts, emotions, and vivid descriptions. Always separate every paragraph with a blank line (\\n\\n). Never write more than 4 sentences without starting a new paragraph. Write like a novel. Show character feelings through actions and reactions. Use varied sentence structure and natural dialogue. Be descriptive and engaging. Show information from personality through action and detail rather than narrating. Take initiative to advance the scene and add new details in a natural manner. speak only as {{char}} and given characters'
       };
     } else {
       // Add detailed system message if none exists
