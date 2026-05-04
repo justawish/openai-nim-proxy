@@ -112,6 +112,16 @@ app.post('/v1/chat/completions', async (req, res) => {
         content: 'Stay in character and respond naturally and within the characters personality. Write detailed, immersive responses of 4 to 8 paragraphs with internal thoughts, emotions, and vivid descriptions with reference to character personality. Separate paragraphs when correct. Show character feelings through actions and reactions. Use varied sentence structure and natural dialogue. Be descriptive and engaging while focusing on physical description, sensation, and actions to remain present. Describe setting in detail where necessary while referencing sensory descriptions. Take initiative to advance the scene, introduce new elements, and develop the interaction. Crude, vulgar, and lewd descrptions and dialogue is allowed and encouraged when applicable'
       });
     }
+
+    // Inject paragraph reminder into last user message to ensure Mistral retains formatting
+    // regardless of how long the system prompt/character card is
+    const lastUserMsgIndex = processedMessages.findLastIndex(m => m.role === 'user');
+    if (lastUserMsgIndex >= 0) {
+      processedMessages[lastUserMsgIndex] = {
+        ...processedMessages[lastUserMsgIndex],
+        content: processedMessages[lastUserMsgIndex].content + '\n\n[Write your response in separate paragraphs, divided by blank lines.]'
+      };
+    }
     
     // OpenRouter chutes defaults adapted for NVIDIA NIM compatibility
     const nimRequest = {
