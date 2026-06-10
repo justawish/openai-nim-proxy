@@ -20,13 +20,13 @@ const ENABLE_THINKING_MODE = false;
 
 // Model mapping - DeepSeek V3.1
 const MODEL_MAPPING = {
-  'gpt-3.5-turbo': 'mistralai/mistral-large-3-675b-instruct-2512',
-  'gpt-4': 'mistralai/mistral-large-3-675b-instruct-2512',
-  'gpt-4-turbo': 'mistralai/mistral-large-3-675b-instruct-2512',
-  'gpt-4o': 'mistralai/mistral-large-3-675b-instruct-2512',
-  'claude-3-opus': 'mistralai/mistral-large-3-675b-instruct-2512',
-  'claude-3-sonnet': 'mistralai/mistral-large-3-675b-instruct-2512',
-  'gemini-pro': 'mistralai/mistral-large-3-675b-instruct-2512' 
+  'gpt-3.5-turbo': 'deepseek-ai/deepseek-v4-pro',
+  'gpt-4': 'deepseek-ai/deepseek-v4-pro',
+  'gpt-4-turbo': 'deepseek-ai/deepseek-v4-pro',
+  'gpt-4o': 'deepseek-ai/deepseek-v4-pro',
+  'claude-3-opus': 'deepseek-ai/deepseek-v4-pro',
+  'claude-3-sonnet': 'deepseek-ai/deepseek-v4-pro',
+  'gemini-pro': 'deepseek-ai/deepseek-v4-pro' 
 };
 
 // Health check endpoint
