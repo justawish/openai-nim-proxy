@@ -124,16 +124,18 @@ app.post('/v1/chat/completions', async (req, res) => {
     }
     
     // OpenRouter chutes defaults adapted for NVIDIA NIM compatibility
-    const nimRequest = {
-      model: nimModel,
-      messages: processedMessages,
-      temperature: temperature !== undefined ? temperature : 0.7,
-      top_p: 1,
-      max_tokens: max_tokens || 4096,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-      stream: stream || false
-    };
+ const nimRequest = {
+  model: nimModel,
+  messages: processedMessages,
+  temperature: temperature !== undefined ? temperature : 0.7,
+  top_p: 1,
+  max_tokens: max_tokens || 4096,
+  frequency_penalty: 0,
+  presence_penalty: 0,
+  stream: stream || false,
+  reasoning_effort: 'low',
+  clear_thinking: true
+};
     
     // Remove null/undefined values that NVIDIA might reject
     Object.keys(nimRequest).forEach(key => {
