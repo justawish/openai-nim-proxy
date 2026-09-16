@@ -133,7 +133,7 @@ app.post('/v1/chat/completions', async (req, res) => {
       frequency_penalty: 0,
       presence_penalty: 0,
       stream: stream || false,
-      reasoning_effort: 'low'
+      reasoning_effort: 'high'
     };
     
     // Remove null/undefined values that NVIDIA might reject
